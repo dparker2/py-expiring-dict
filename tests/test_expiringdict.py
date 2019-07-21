@@ -41,4 +41,5 @@ def test_dict_ops():
     assert [k for k in d.keys()] == [k for k in ed.keys()]
     assert [v for v in d.values()] == [v for v in ed.values()]
     assert [i for i in d.items()] == [i for i in ed.items()]
+    assert "one" in ed
 
