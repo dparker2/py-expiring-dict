@@ -1,9 +1,11 @@
 from collections.abc import MutableMapping
-from threading import Timer
+from threading import Timer, Thread, Lock
+from blist import sortedlist
+from time import time, sleep
 
 
 class ExpiringDict(MutableMapping):
-    def __init__(self, ttl=None):
+    def __init__(self, ttl=None, interval=0.100, *args, **kwargs):
         """
         Create an ExpiringDict class, optionally passing in a time-to-live
         number in seconds that will act globally as an expiration time for keys.
@@ -11,70 +13,30 @@ class ExpiringDict(MutableMapping):
         If omitted, the dict will work like a normal dict by default, expiring
         only keys explicity set via the `.ttl` method.
         """
-        self.__store = dict()
-        self.__expirations = dict()
+        self.__store = dict(*args, **kwargs)
+        self.__keys = sortedlist(key=lambda x: x[0])
         self.__ttl = ttl
+        self.__lock = Lock()
+        self.__interval = interval
 
-    def __delitem__(self, key):
-        """
-        Delete `key` from the dict.
-        Raises `KeyError` if key does not exist.
-        """
-        try:
-            del self.__store[key]
-        except KeyError:
-            raise KeyError
-        try:
-            self.__expirations[key].cancel()
-            del self.__expirations[key]
-        except KeyError:
-            pass
+        Thread(target=self.__worker, daemon=True).start()
 
-    def __getitem__(self, key):
-        """
-        Return value of `key` in dict.
-        Raises `KeyError` if key does not exist.
-        """
-        try:
-            return self.__store[key]
-        except KeyError:
-            raise KeyError
-
-    def get(self, key, default=None):
-        """
-        Return value of `key` in dict, or default value which defaults to `None`.
-        """
-        return self.__store.get(key, default)
-
-    def __iter__(self):
-        """
-        Return iterator of dict.
-        """
-        return iter(self.__store)
-
-    def __len__(self):
-        """
-        Return length of dict.
-        """
-        return len(self.__store)
-
-    def keys(self):
-        """
-        Return dict keys.
-        """
-        return self.__store.keys()
-
-    def values(self):
-        """
-        Return dict values.
-        """
-        return self.__store.values()
-
-    def items(self):
-        """
-        Return dict items.
-        """
-        return self.__store.items()
+    def __worker(self):
+        while True:
+            now = time()
+            max_index = 0
+            self.__lock.acquire()
+            for index, (timestamp, key) in enumerate(self.__keys):
+                if timestamp > now:  # rest of the timestamps in future
+                    max_index = index
+                    break
+                try:
+                    del self.__store[key]
+                except KeyError:
+                    pass  # don't care if it was deleted early
+            del self.__keys[0:max_index]
+            self.__lock.release()
+            sleep(self.__interval)
 
     def __setitem__(self, key, value):
         """
@@ -94,14 +56,19 @@ class ExpiringDict(MutableMapping):
         self.__set_with_expire(key, value, ttl)
 
     def __set_with_expire(self, key, value, ttl):
-        def expire():
-            try:
-                del self[key]
-            except KeyError:
-                pass
-
-        timer = Timer(ttl, expire)
-        timer.start()
-        self.__expirations[key] = timer
-
+        self.__lock.acquire()
+        self.__keys.add((time() + ttl, key))
         self.__store[key] = value
+        self.__lock.release()
+
+    def __delitem__(self, key):
+        del self.__store[key]
+
+    def __getitem__(self, key):
+        return self.__store[key]
+
+    def __iter__(self):
+        return iter(self.__store)
+
+    def __len__(self):
+        return len(self.__store)
