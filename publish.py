@@ -6,7 +6,7 @@ import shutil
 os.system(f"{sys.executable} -m pip install --user --upgrade setuptools wheel twine")
 
 # Delete previous build
-shutil.rmtree("dist")
+shutil.rmtree("dist", ignore_errors=True)
 
 # Build
 os.system(f"{sys.executable} setup.py sdist bdist_wheel")

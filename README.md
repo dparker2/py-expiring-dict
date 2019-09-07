@@ -13,7 +13,7 @@ pip install expiring-dict
 from time import sleep
 from expiring_dict import ExpiringDict
 
-cache = ExpiringDict(ttl=1)  # Keys will exist for 1 second
+cache = ExpiringDict(1)  # Keys will exist for 1 second
 
 cache["abc123"] = "some value"
 assert "abc123" in cache
