@@ -1,4 +1,8 @@
-from collections.abc import MutableMapping
+try:
+    from collections.abc import MutableMapping
+except ImportError:     # Will allow usage with virtually any python 3 version
+    from collections import MutableMapping
+
 from threading import Timer, Thread, Lock
 from blist import sortedlist
 from time import time, sleep
