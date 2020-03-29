@@ -9,7 +9,7 @@ def test_init():
 def test_no_ttl():
     d = ExpiringDict()
     d["key"] = "value"
-    assert len(d._ExpiringDict__expirations) == 0
+    assert len(d) == 1
 
 
 def test_class_ttl():
