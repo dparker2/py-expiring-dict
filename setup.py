@@ -12,7 +12,7 @@ setuptools.setup(
     description="Python dict with TTL support for auto-expiring caches",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/ParkerD559/py-expiring-dict",
+    url="https://github.com/dparker2/py-expiring-dict",
     packages=setuptools.find_packages(),
     install_requires=["blist"],
     classifiers=[

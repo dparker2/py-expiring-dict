@@ -9,22 +9,22 @@ def test_init():
 def test_no_ttl():
     d = ExpiringDict()
     d["key"] = "value"
-    assert len(d) == 1
+    assert len(d._ExpiringDict__keys) == 0
 
 
 def test_class_ttl():
-    d = ExpiringDict(ttl=1)
+    d = ExpiringDict(ttl=0.01, interval=0.005)
     d["key"] = "should be gone"
     assert len(d) == 1
-    sleep(1.1)
+    sleep(0.02)
     assert len(d) == 0
 
 
 def test_set_ttl():
-    d = ExpiringDict()
-    d.ttl("key", "expire", 1)
+    d = ExpiringDict(interval=0.005)
+    d.ttl("key", "expire", 0.01)
     assert len(d) == 1
-    sleep(1.1)
+    sleep(0.02)
     assert len(d) == 0
 
 
@@ -42,4 +42,3 @@ def test_dict_ops():
     assert [v for v in d.values()] == [v for v in ed.values()]
     assert [i for i in d.items()] == [i for i in ed.items()]
     assert "one" in ed
-
