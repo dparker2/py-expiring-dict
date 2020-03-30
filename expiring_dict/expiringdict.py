@@ -1,10 +1,10 @@
 try:
     from collections.abc import MutableMapping
-except ImportError:     # Will allow usage with virtually any python 3 version
+except ImportError:  # Will allow usage with virtually any python 3 version
     from collections import MutableMapping
 
 from threading import Timer, Thread, Lock
-from blist import sortedlist
+from sortedcontainers import SortedKeyList
 from time import time, sleep
 
 
@@ -18,18 +18,17 @@ class ExpiringDict(MutableMapping):
         only keys explicity set via the `.ttl` method.
         """
         self.__store = dict(*args, **kwargs)
-        self.__keys = sortedlist(key=lambda x: x[0])
+        self.__keys = SortedKeyList(key=lambda x: x[0])
         self.__ttl = ttl
         self.__lock = Lock()
         self.__interval = interval
 
         Thread(target=self.__worker, daemon=True).start()
 
-    def __worker(self):
-        while True:
-            now = time()
-            max_index = 0
-            self.__lock.acquire()
+    def flush(self):
+        now = time()
+        max_index = 0
+        with self.__lock:
             for index, (timestamp, key) in enumerate(self.__keys):
                 if timestamp > now:  # rest of the timestamps in future
                     max_index = index
@@ -39,7 +38,10 @@ class ExpiringDict(MutableMapping):
                 except KeyError:
                     pass  # don't care if it was deleted early
             del self.__keys[0:max_index]
-            self.__lock.release()
+
+    def __worker(self):
+        while True:
+            self.flush()
             sleep(self.__interval)
 
     def __setitem__(self, key, value):
