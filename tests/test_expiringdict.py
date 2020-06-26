@@ -1,5 +1,5 @@
 from expiring_dict import ExpiringDict
-from time import sleep
+import time
 
 
 def test_init():
