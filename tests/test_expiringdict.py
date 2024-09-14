@@ -42,3 +42,19 @@ def test_dict_ops():
     assert [v for v in d.values()] == [v for v in ed.values()]
     assert [i for i in d.items()] == [i for i in ed.items()]
     assert "one" in ed
+
+
+def test_class_ttl_twice():
+    d = ExpiringDict(ttl=0.01, interval=0.005)
+    d["key"] = "should be gone"
+    assert len(d) == 1
+    sleep(0.006)
+    assert len(d) == 1
+    sleep(0.02)
+    assert len(d) == 0
+    d["key"] = "should be gone"
+    assert len(d) == 1
+    sleep(0.006)
+    assert len(d) == 1
+    sleep(0.02)
+    assert len(d) == 0
