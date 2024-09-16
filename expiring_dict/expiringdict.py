@@ -31,10 +31,10 @@ class ExpiringDict(MutableMapping):
         with self.__lock:
             for index, (timestamp, key) in enumerate(self.__keys):
                 if timestamp > now:  # rest of the timestamps in future
-                    max_index = index
                     break
                 try:
                     del self.__store[key]
+                    max_index = index + 1
                 except KeyError:
                     pass  # don't care if it was deleted early
             del self.__keys[0:max_index]
