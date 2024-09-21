@@ -68,6 +68,7 @@ class ExpiringDict(MutableMapping):
             for index, (_timestamp, old_key) in enumerate(self.__keys):
                 if old_key == key:
                     del self.__keys[index]
+                    break  # should only be one entry per key
         self.__keys.add((time() + ttl, key))
         self.__store[key] = value
         self.__lock.release()
