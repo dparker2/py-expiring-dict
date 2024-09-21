@@ -3,7 +3,7 @@ try:
 except ImportError:  # Will allow usage with virtually any python 3 version
     from collections import MutableMapping
 
-from threading import Timer, Thread, Lock
+from threading import Thread, Lock
 from sortedcontainers import SortedKeyList
 from time import time, sleep
 
@@ -63,6 +63,12 @@ class ExpiringDict(MutableMapping):
 
     def __set_with_expire(self, key, value, ttl):
         self.__lock.acquire()
+        if key in self.__store.keys():
+            # remove old entry to reset the ttl
+            for index, (_timestamp, old_key) in enumerate(self.__keys):
+                if old_key == key:
+                    del self.__keys[index]
+                    break  # should only be one entry per key
         self.__keys.add((time() + ttl, key))
         self.__store[key] = value
         self.__lock.release()
