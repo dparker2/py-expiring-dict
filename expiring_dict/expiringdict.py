@@ -17,8 +17,10 @@ class ExpiringDict(MutableMapping):
         If omitted, the dict will work like a normal dict by default, expiring
         only keys explicity set via the `.ttl` method.
         """
+        now = time()
         self.__store = dict(*args, **kwargs)
         self.__keys = SortedKeyList(key=lambda x: x[0])
+        self.__time_last_set = {k: now for k in self.__store}
         self.__ttl = ttl
         self.__lock = Lock()
         self.__interval = interval
@@ -27,17 +29,27 @@ class ExpiringDict(MutableMapping):
 
     def flush(self):
         now = time()
-        max_index = 0
+        del_index = 0
+
         with self.__lock:
-            for index, (timestamp, key) in enumerate(self.__keys):
-                if timestamp > now:  # rest of the timestamps in future
+            for index, (timestamp, set_at, key) in enumerate(self.__keys):
+                if timestamp > now:  # Rest of the timestamps in future
                     break
-                max_index = index + 1
+
+                del_index = index + 1
+
+                if self.__time_last_set[key] > set_at:
+                    continue  # This key was set again at some point, don't delete from store
+
                 try:
                     del self.__store[key]
                 except KeyError:
-                    pass  # don't care if it was deleted early
-            del self.__keys[0:max_index]
+                    pass  # Don't care if it was deleted early
+                try:
+                    del self.__time_last_set[key]
+                except KeyError:
+                    pass
+            del self.__keys[0:del_index]
 
     def __worker(self):
         while True:
@@ -62,16 +74,12 @@ class ExpiringDict(MutableMapping):
         self.__set_with_expire(key, value, ttl)
 
     def __set_with_expire(self, key, value, ttl):
-        self.__lock.acquire()
-        if key in self.__store.keys():
-            # remove old entry to reset the ttl
-            for index, (_timestamp, old_key) in enumerate(self.__keys):
-                if old_key == key:
-                    del self.__keys[index]
-                    break  # should only be one entry per key
-        self.__keys.add((time() + ttl, key))
-        self.__store[key] = value
-        self.__lock.release()
+        now = time()
+
+        with self.__lock:
+            self.__keys.add((now + ttl, now, key))
+            self.__store[key] = value
+            self.__time_last_set[key] = now
 
     def __delitem__(self, key):
         del self.__store[key]

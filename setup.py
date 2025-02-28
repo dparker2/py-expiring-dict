@@ -7,7 +7,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="expiring-dict",
-    version="1.1.1",
+    version="1.1.2",
     author="David Parker",
     description="Python dict with TTL support for auto-expiring caches",
     long_description=long_description,
