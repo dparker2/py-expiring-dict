@@ -71,3 +71,21 @@ def test_class_reset_ttl_with_reinsert():
     assert len(d) == 1
     sleep(0.006)
     assert len(d) == 0
+
+    
+def test_class_ttl_reinsert_after_delete():
+    d = ExpiringDict(ttl=0.01, interval=0.005)
+    d["key"] = "should be gone"
+    assert len(d) == 1
+    sleep(0.006)
+    assert len(d) == 1
+    del d["key"]
+    assert len(d) == 0
+    sleep(0.02)
+    assert len(d) == 0
+    d["key"] = "should be gone"
+    assert len(d) == 1
+    sleep(0.006)
+    assert len(d) == 1
+    sleep(0.02)
+    assert len(d) == 0
